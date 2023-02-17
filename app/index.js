@@ -1,17 +1,26 @@
 let teamName = "";
-let username = "dave";
+let username = "";
+let otherPlayer = ""
 
 async function startGame() {
   document.getElementById("startbutton").remove();
+  let usernameInput = document.getElementById("userName");
+  username = usernameInput.value;
+  usernameInput.innerHTML = "";
+  usernameInput.remove();
+  document.getElementById("spanname").remove();
+
   const ws = await connectToServer();
-  const messageBody = {};
+
+  const messageBody = {username};
   ws.send(JSON.stringify(messageBody));
-  document.getElementById("waitingMessage").innerText = "Waiting for another plater...";
+  document.getElementById("waitingMessage").innerText = "Waiting for another player...";
 
   ws.onmessage = (webSocketMessage) => {    
     const messageBody = JSON.parse(webSocketMessage.data);
     teamName = messageBody.teamName;
-    console.log(teamName);
+    otherPlayer = messageBody.otherPlayer;
+    document.getElementById("players").innerText = username + " vs " + otherPlayer;
     document.getElementById("waitingMessage").innerText = "";
     playGame();
   };
@@ -37,11 +46,12 @@ async function playGame() {
   ws.onmessage = (webSocketMessage) => {
     const messageBody = JSON.parse(webSocketMessage.data);
     const cursor = getOrCreateCursorFor(messageBody);
-    cursor.style.transform = `translate(${messageBody.x}px, ${messageBody.y}px)`;
+    cursor.style.transform = `translate(${messageBody.x}px, ${messageBody.y}px)`; 
+    console.log(messageBody.username, "who moved");
   };
 
   document.body.onmousemove = (evt) => {
-    const messageBody = { x: evt.clientX, y: evt.clientY };
+    const messageBody = { x: evt.clientX, y: evt.clientY,username };
     ws.send(JSON.stringify(messageBody));
   };
 
