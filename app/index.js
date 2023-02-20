@@ -8,6 +8,8 @@ let currentPosY;
 let otherPosX;
 let otherPosY;
 const speed = 10;
+//ws://localhost:8080/unmatched?username="
+const site = "ws://web-socket-dmcn.onrender.com";
 
 async function startGame() {
   document.getElementById("startbutton").remove();
@@ -40,7 +42,7 @@ async function startGame() {
 
   async function connectToServer() {
     const ws = new WebSocket(
-      "ws://localhost:8080/unmatched?username=" + username
+      site +  "/unmatched?username=" + username
     );
     return new Promise((resolve, reject) => {
       const timer = setInterval(() => {
@@ -54,7 +56,7 @@ async function startGame() {
 }
 
 async function playGame() {
-  const ws = new WebSocket("ws://localhost:8080/matched?team=" + teamName);
+  const ws = new WebSocket(site + "/matched?team=" + teamName);
 
   ws.onopen = function (e) {
     currentPosX = startPos[0];
