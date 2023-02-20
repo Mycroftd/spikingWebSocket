@@ -30,6 +30,7 @@ wss1.on("connection", function (ws) {
 });
 
 wss1.on("close", () => {
+  console.log("left");
   clients.delete(ws);
 });
 
@@ -39,7 +40,7 @@ let wsStore;
 wss2.on("connection", function (ws) {
   ws.on("message", () => {
     if (teamSize === 0) {
-      wsStore = ws;
+      wsStore = ws;      
       teamSize = 1;
     } else {
       const message = {
@@ -47,7 +48,13 @@ wss2.on("connection", function (ws) {
       };
       teamNo++;
       teamSize = 0;
+      message.otherPlayer = ws.channel;
+      message.startPos = [10,10];
+      message.enemyStartPos = [500,10];
       wsStore.send(JSON.stringify(message));
+      message.otherPlayer = wsStore.channel;
+      message.startPos = [500,10];
+      message.enemyStartPos = [10,10];
       ws.send(JSON.stringify(message));
       wsStore.close();
       ws.close();
@@ -67,9 +74,7 @@ function uuidv4() {
 server.on("upgrade", function upgrade(request, socket, head) {
   const { pathname } = parse(request.url);
   const newPath = pathname.slice(1);
-  console.log(newPath);  
   const query = request.url.match(/=\w+/)[0].slice(1);
-  console.log(query);
 
   if (newPath === "matched") {
     wss1.handleUpgrade(request, socket, head, function done(ws) {
