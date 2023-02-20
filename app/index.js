@@ -8,8 +8,7 @@ let currentPosY;
 let otherPosX;
 let otherPosY;
 const speed = 10;
-//ws://localhost:8080/unmatched?username="
-const site = "ws://web-socket-dmcn.onrender.com";
+const site = "ws://spacewarserver.eu-4.evennode.com";
 
 async function startGame() {
   document.getElementById("startbutton").remove();
