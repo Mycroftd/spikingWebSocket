@@ -49,8 +49,12 @@ wss2.on("connection", function (ws) {
       teamNo++;
       teamSize = 0;
       message.otherPlayer = ws.channel;
+      message.startPos = [10,10];
+      message.enemyStartPos = [500,10];
       wsStore.send(JSON.stringify(message));
       message.otherPlayer = wsStore.channel;
+      message.startPos = [500,10];
+      message.enemyStartPos = [10,10];
       ws.send(JSON.stringify(message));
       wsStore.close();
       ws.close();

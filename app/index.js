@@ -1,6 +1,13 @@
 let teamName = "";
 let username = "";
-let otherPlayer = ""
+let otherPlayer = "";
+let startPos = [];
+let enemyStartPos = [];
+let currentPosX;
+let currentPosY;
+let otherPosX;
+let otherPosY;
+const speed = 10;
 
 async function startGame() {
   document.getElementById("startbutton").remove();
@@ -12,15 +19,21 @@ async function startGame() {
 
   const ws = await connectToServer();
 
-  const messageBody = {username};
+  const messageBody = { username };
   ws.send(JSON.stringify(messageBody));
-  document.getElementById("waitingMessage").innerText = "Waiting for another player...";
+  document.getElementById("waitingMessage").innerText =
+    "Waiting for another player...";
 
-  ws.onmessage = (webSocketMessage) => {    
+  ws.onmessage = (webSocketMessage) => {
     const messageBody = JSON.parse(webSocketMessage.data);
     teamName = messageBody.teamName;
     otherPlayer = messageBody.otherPlayer;
-    document.getElementById("players").innerText = username + " vs " + otherPlayer;
+    startPos = messageBody.startPos;
+    enemyStartPos = messageBody.enemyStartPos;
+    console.log(enemyStartPos);
+
+    document.getElementById("players").innerText =
+      username + " vs " + otherPlayer;
     document.getElementById("waitingMessage").innerText = "";
     playGame();
   };
@@ -41,48 +54,50 @@ async function startGame() {
 }
 
 async function playGame() {
-  const ws = await connectToServer();
+  const ws = new WebSocket("ws://localhost:8080/matched?team=" + teamName);
+
+  ws.onopen = function (e) {
+    currentPosX = startPos[0];
+    currentPosY = startPos[1];
+    otherPosX = enemyStartPos[0];
+    otherPosY = enemyStartPos[1];
+    console.log();
+    draw();
+  };
 
   ws.onmessage = (webSocketMessage) => {
     const messageBody = JSON.parse(webSocketMessage.data);
-    const cursor = getOrCreateCursorFor(messageBody);
-    cursor.style.transform = `translate(${messageBody.x}px, ${messageBody.y}px)`; 
+    console.log(messageBody);
+    if (messageBody.username === username) {
+      currentPosX = messageBody.x;
+      currentPosY = messageBody.y;
+    } else {
+      otherPosX = messageBody.x;
+      otherPosY = messageBody.y;
+    }
+    draw();
     console.log(messageBody.username, "who moved");
   };
 
-  document.body.onmousemove = (evt) => {
-    const messageBody = { x: evt.clientX, y: evt.clientY,username };
+  document.body.onkeydown = (evt) => {
+    console.log(evt.key);
+    if (evt.key === "ArrowUp") {
+      currentPosY -= speed;
+    } else if (evt.key === "ArrowDown") {
+      currentPosY += speed;
+    } else if (evt.key === "ArrowLeft") {
+      currentPosX -= speed;
+    } else if (evt.key === "ArrowRight") {
+      currentPosX += speed;
+    }
+    const messageBody = { x: currentPosX, y: currentPosY, username };
     ws.send(JSON.stringify(messageBody));
   };
 
-  async function connectToServer() {
-    console.log("Connecting to server");
-    const ws = new WebSocket("ws://localhost:8080/matched?team=" + teamName);
-    return new Promise((resolve, reject) => {
-      const timer = setInterval(() => {
-        if (ws.readyState === 1) {
-          clearInterval(timer);
-          resolve(ws);
-        }
-      }, 10);
-    });
-  }
-
-  function getOrCreateCursorFor(messageBody) {
-    const sender = messageBody.sender;
-    const existing = document.querySelector(`[data-sender='${sender}']`);
-    if (existing) {
-      return existing;
-    }
-
-    const template = document.getElementById("cursor");
-    const cursor = template.content.firstElementChild.cloneNode(true);
-    const svgPath = cursor.getElementsByTagName("path")[0];
-
-    cursor.setAttribute("data-sender", sender);
-    svgPath.setAttribute("fill", `hsl(${messageBody.color}, 50%, 50%)`);
-    document.body.appendChild(cursor);
-
-    return cursor;
+  function draw() {
+    const ctx = document.getElementById("canvas").getContext("2d");
+    ctx.clearRect(0, 0, 600, 400); // clear canvas
+    ctx.fillRect(currentPosX - 10, currentPosY + 10, 20, 20);
+    ctx.fillRect(otherPosX - 10, otherPosY + 10, 20, 20);
   }
 }
