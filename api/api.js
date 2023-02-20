@@ -7,6 +7,7 @@ const clients = new Map();
 const server = createServer();
 const wss1 = new WebSocketServer({ noServer: true });
 const wss2 = new WebSocketServer({ noServer: true });
+const listOfUsernames = [];
 
 wss1.on("connection", function (ws) {
   const id = uuidv4();
@@ -19,6 +20,17 @@ wss1.on("connection", function (ws) {
   ws.on("message", (messageAsString) => {
     const message = JSON.parse(messageAsString);
     const metadata = clients.get(ws);
+
+    if (message.lost === true) {
+      console.log(message.username + " lost the game");
+      [...clients.keys()].forEach((client) => {
+        if (room === client.channel) {
+          client.send(JSON.stringify(message));
+          client.close();
+        }
+      });
+      return;
+    }
 
     message.sender = metadata.id;
     message.color = metadata.color;
@@ -39,22 +51,34 @@ let teamSize = 0;
 let wsStore;
 wss2.on("connection", function (ws) {
   ws.on("message", () => {
+    // if (listOfUsernames.includes(ws.channel)) {
+    //   ws.send(JSON.stringify({message: "username"}));
+    //   return;
+    // }
+    // listOfUsernames.push(ws.channel);
+
     if (teamSize === 0) {
-      wsStore = ws;      
+      wsStore = ws;
       teamSize = 1;
+      ws.send(JSON.stringify({message: "waiting"}));
     } else {
       const message = {
+        message: "paired",
         teamName: teamNo,
       };
       teamNo++;
       teamSize = 0;
       message.otherPlayer = ws.channel;
-      message.startPos = [10,10];
-      message.enemyStartPos = [500,10];
+      message.startPos = [10, 10];
+      message.enemyStartPos = [500, 10];
+      message.angle = 0;
+      message.enemyAngle = 0;
       wsStore.send(JSON.stringify(message));
       message.otherPlayer = wsStore.channel;
-      message.startPos = [500,10];
-      message.enemyStartPos = [10,10];
+      message.startPos = [500, 10];
+      message.enemyStartPos = [10, 10];
+      message.angle = 0;
+      message.enemyAngle = 0;
       ws.send(JSON.stringify(message));
       wsStore.close();
       ws.close();
@@ -87,7 +111,6 @@ server.on("upgrade", function upgrade(request, socket, head) {
       wss2.emit("connection", ws, request);
     });
   }
-
 });
 
 server.listen(8080);
